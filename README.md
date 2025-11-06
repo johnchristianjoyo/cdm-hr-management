@@ -3,7 +3,7 @@ november 6, 2025
 what this can do:
 - generate link
 - add new applicants
-- handling the profiles of employee
+- handling the profiles of existing employees
 - generate service record
 - add new training
 
