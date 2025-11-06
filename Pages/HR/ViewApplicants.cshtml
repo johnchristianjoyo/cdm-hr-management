@@ -1,0 +1,336 @@
+@page
+@model CDM.HRManagement.Pages.HR.ViewApplicantsModel
+@{
+    ViewData["Title"] = "View Applicants";
+    Layout = "~/Pages/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="display-6 fw-bold" style="color: #FFD544;">
+                <i class="bi bi-person-lines-fill"></i>Pending Applicants
+            </h1>
+            <p class="text-white">Review and process employee onboarding submissions</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="/HR/Dashboard" class="btn btn-outline-secondary btn-lg" style="color: white; border-color: white;">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+
+            <!-- Open Add Applicant modal or page -->
+            <button type="button"
+                    class="btn btn-lg"
+                    style="background-color: #FFD544; color: black; border: none;"
+                    data-bs-toggle="modal"
+                    data-bs-target="#addApplicantModal">
+                <i class="bi bi-person-plus-fill me-2"></i> Add New Applicant
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success" role="alert">
+            @Model.SuccessMessage
+        </div>
+    }
+
+    @if (Model.Applicants == null || !Model.Applicants.Any())
+    {
+        <div class="alert alert-light text-center">
+            No pending applicants yet. Click <strong>Add New Applicant</strong> to create one.
+        </div>
+    }
+    else
+    {
+        <!-- Applicants List -->
+        <div class="row">
+            <div class="col-12">
+                @foreach (var app in Model.Applicants)
+                {
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-0 py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="mb-0 fw-bold">@app.Name</h5>
+                                    <small class="text-muted d-block">Applicant ID: @app.ApplicantCode</small>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar"></i> Submitted: @app.Submitted.ToString("MMMM dd, yyyy")
+                                    </small>
+                                </div>
+                                <span class="badge bg-warning fs-6">@app.Status</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block">Position</small>
+                                    <strong>@app.Position</strong>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block">Department</small>
+                                    <strong>@app.Department</strong>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block">Email</small>
+                                    <strong>@app.Email</strong>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted d-block">Phone</small>
+                                    <strong>@app.Phone</strong>
+                                </div>
+                            </div>
+
+                            <hr class="my-3">
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button class="btn btn-outline-primary" onclick="viewDetails('@app.Name')">
+                                    <i class="bi bi-eye"></i> View Full Details
+                                </button>
+
+                                <div class="d-flex gap-2">
+                                    <!-- Generate Link (placeholder for future) -->
+                                    <form method="post" asp-page-handler="GenerateLink">
+                                        <input type="hidden" name="applicantId" value="@app.ApplicantCode" />
+                                        <button type="submit" class="btn btn-secondary btn-lg" title="Generate Link">
+                                            <i class="bi bi-link-45deg me-1"></i> Generate Link
+                                        </button>
+                                    </form>
+
+                                    @if (TempData["GeneratedLink"] != null)
+                                    {
+                                        <div class="mt-2">
+                                            <label class="fw-bold text-success">Generated Link:</label><br />
+                                            <input type="text" readonly class="form-control" value="@TempData["GeneratedLink"]" onclick="copyLink(this)" />
+                                            <small class="text-muted">Click to copy the link.</small>
+                                        </div>
+                                    }
+
+
+                                    <!-- Hire triggers confirmation modal -->
+                                    <button type="button" class="btn btn-success btn-lg" onclick="confirmHire('@app.Name','@app.Id')">
+                                        <i class="bi bi-check-circle"></i> Hire
+                                    </button>
+
+                                    <!-- Reject triggers confirmation modal -->
+                                    <button type="button" class="btn btn-danger btn-lg" onclick="confirmReject('@app.Name','@app.Id')">
+                                        <i class="bi bi-x-circle"></i> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Add Applicant Modal -->
+<div class="modal fade" id="addApplicantModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="AddApplicant">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-person-plus-fill me-2"></i> Add New Applicant
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="NewApplicant.Name" class="form-label fw-semibold">Full Name</label>
+                            <input asp-for="NewApplicant.Name" class="form-control" placeholder="Enter full name" required />
+                            <span asp-validation-for="NewApplicant.Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="NewApplicant.Department" class="form-label fw-semibold">Department</label>
+                            <select asp-for="NewApplicant.Department"
+                                    class="form-select"
+                                    id="departmentSelect"
+                                    required>
+                                <option value="">-- Select Department --</option>
+                                @foreach (var dept in Model.Departments)
+                                {
+                                    <option value="@dept">@dept</option>
+                                }
+                            </select>
+                            <span asp-validation-for="NewApplicant.Department" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="NewApplicant.Position" class="form-label fw-semibold">Position</label>
+                            <select asp-for="NewApplicant.Position"
+                                    class="form-select"
+                                    id="positionSelect"
+                                    required
+                                    disabled>
+                                <option value="">-- Select Department First --</option>
+                            </select>
+                            <span asp-validation-for="NewApplicant.Position" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="NewApplicant.Email" class="form-label fw-semibold">Email</label>
+                            <input asp-for="NewApplicant.Email" type="email" class="form-control" placeholder="Enter email" required />
+                            <span asp-validation-for="NewApplicant.Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="NewApplicant.Phone" class="form-label fw-semibold">Phone Number</label>
+                            <input asp-for="NewApplicant.Phone" class="form-control" placeholder="Enter phone number" required />
+                            <span asp-validation-for="NewApplicant.Phone" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn" style="background-color: #3a5a40; color: white;">
+                        <i class="bi bi-check2-circle me-1"></i> Add This Applicant
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Hire Confirmation Modal -->
+<div class="modal fade" id="hireConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle text-success"></i> Confirm Hire
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to hire <strong id="hireApplicantName"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+
+                <form method="post" asp-page-handler="HireApplicant" id="hireForm" class="m-0">
+                    <input type="hidden" name="applicantId" id="hireApplicantId" value="" />
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Hire
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Confirmation Modal -->
+<div class="modal fade" id="rejectConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-x-circle text-danger"></i> Confirm Reject
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Do you want to reject <strong id="rejectApplicantName"></strong>?</p>
+                <p class="text-danger mb-0"><i class="bi bi-info-circle"></i> This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+
+                <form method="post" asp-page-handler="RejectApplicant" id="rejectForm" class="m-0">
+                    <input type="hidden" name="applicantId" id="rejectApplicantId" value="" />
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> Reject
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Cascading dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const departmentSelect = document.getElementById('departmentSelect');
+            const positionSelect = document.getElementById('positionSelect');
+
+            departmentSelect.addEventListener('change', function() {
+                const selectedDepartment = this.value;
+
+                // Clear and disable position dropdown
+                positionSelect.innerHTML = '<option value="">-- Loading... --</option>';
+                positionSelect.disabled = true;
+
+                if (selectedDepartment) {
+                    // Fetch positions for selected department
+                    fetch(`?handler=Positions&department=${encodeURIComponent(selectedDepartment)}`)
+                        .then(response => response.json())
+                        .then(positions => {
+                            // Clear dropdown
+                            positionSelect.innerHTML = '<option value="">-- Select Position --</option>';
+
+                            // Add positions
+                            positions.forEach(position => {
+                                const option = document.createElement('option');
+                                option.value = position;
+                                option.textContent = position;
+                                positionSelect.appendChild(option);
+                            });
+
+                            // Enable position dropdown
+                            positionSelect.disabled = false;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching positions:', error);
+                            positionSelect.innerHTML = '<option value="">-- Error loading positions --</option>';
+                        });
+                } else {
+                    // No department selected
+                    positionSelect.innerHTML = '<option value="">-- Select Department First --</option>';
+                }
+            });
+
+            // Reset form when modal closes
+            document.getElementById('addApplicantModal').addEventListener('hidden.bs.modal', function() {
+                departmentSelect.value = '';
+                positionSelect.innerHTML = '<option value="">-- Select Department First --</option>';
+                positionSelect.disabled = true;
+            });
+        });
+
+        function viewDetails(name) {
+            alert('View details for: ' + name);
+        }
+
+        // Hire confirmation
+        function confirmHire(name, id) {
+            document.getElementById('hireApplicantName').textContent = name;
+            document.getElementById('hireApplicantId').value = id;
+            const modal = new bootstrap.Modal(document.getElementById('hireConfirmModal'));
+            modal.show();
+        }
+
+        // Reject confirmation
+        function confirmReject(name, id) {
+            document.getElementById('rejectApplicantName').textContent = name;
+            document.getElementById('rejectApplicantId').value = id;
+            const modal = new bootstrap.Modal(document.getElementById('rejectConfirmModal'));
+            modal.show();
+        }
+
+                function copyLink(input) {
+            input.select();
+            document.execCommand("copy");
+            alert("Link copied! You can now paste it into Messenger.");
+        }
+    </script>
+}
